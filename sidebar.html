@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,400,0,0" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      }
+
+      .search-button-container {
+        text-align: center;
+      }
+
+      .search-button {
+        padding: 8px 15px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+
+      .search-button:hover {
+        background-color: #1e5283;
+      }
+
+      .search-loader {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+        margin-top: 20px;
+        display: none; /* Hide initially */
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      #search-results {
+        margin-top: 8px;
+      }
+
+      .result-item {
+        cursor: pointer;
+        padding: 5px;
+        margin-bottom: 5px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #f0f0f0;
+        transition: background-color 0.3s ease;
+      }
+
+      .result-item:hover {
+        background-color: #e0e0e0;
+      }
+
+      .result-item-error {
+        background-color: #F8C1C3;
+      }
+      .result-item-error:hover {
+        background-color: #F6ACB0;
+      }
+
+      .result-item-warning {
+        background-color: #F9CF93;
+      }
+      .result-item-warning:hover {
+        background-color: #F8C379;
+      }
+
+      .result-item-content-hidden {
+        content-visibility: hidden !important;
+        border: hidden !important;
+        margin: 0 !important;
+      }
+
+      .result-item-text-toggle {
+        display: flex;
+      }
+
+      .result-item-text {
+        font-weight: bold;
+        font-size: 1.1em;
+        color: black;
+        width: 90%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        align-self: center;
+      }
+
+      .result-item-toggle {
+        text-align: end;
+        width: 10%;
+        align-self: center;
+      }
+
+      .result-item-occurrence {
+        font-size: 0.8em;
+        color: gray;
+      }
+
+      .result-item-divider {
+        border-top: 1px solid #ccc;
+        margin-top: 5px;
+        margin-bottom: 5px;
+      }
+
+      .result-item-message {
+        font-size: 0.8em;
+        color: black;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="search-button-container">
+      <button class="search-button" onclick="triggerIssueSearch()">Search</button>
+      <div class="search-loader" id="searchLoader"></div>
+    </div>
+    <div id="search-results"></div>
+
+    <script>
+      function triggerIssueSearch() {
+        const resultsContainer = document.getElementById('search-results');
+        resultsContainer.innerHTML = '';
+        document.getElementById('searchLoader').style.display = 'block';
+        google.script.run.withSuccessHandler(displayResults).searchForIssues();
+      }
+
+      function displayResults(results) {
+        const resultsContainer = document.getElementById('search-results');
+        resultsContainer.innerHTML = '';
+        results.forEach(function(result, index) {
+          const itemOccurrence = document.createElement('div');
+          itemOccurrence.classList.add('result-item-occurrence');
+          itemOccurrence.innerText = "Occurrence #"+result.occurrenceNumber;
+
+          const divider = document.createElement('hr');
+          divider.classList.add('result-item-divider');
+
+          const itemMessage = document.createElement('div');
+          itemMessage.classList.add('result-item-occurrence');
+          itemMessage.innerText = result.message;
+
+          const stateToggle = document.createElement('div');
+          stateToggle.innerHTML = '<span class="material-symbols-outlined">expand_circle_down</span>';
+          stateToggle.classList.add('result-item-toggle');
+          stateToggle.addEventListener('click', function(e) {
+            itemOccurrence.classList.toggle('result-item-content-hidden');
+            divider.classList.toggle('result-item-content-hidden');
+            itemMessage.classList.toggle('result-item-content-hidden');
+            if (stateToggle.innerHTML.indexOf("expand_circle_down") !== -1) {
+              stateToggle.innerHTML = '<span class="material-symbols-outlined">expand_circle_right</span>';
+            } else {
+              stateToggle.innerHTML = '<span class="material-symbols-outlined">expand_circle_down</span>';
+            }
+            e.stopPropagation();
+          });
+
+          const itemText = document.createElement('div');
+          itemText.classList.add('result-item-text');
+          itemText.innerText = result.text;
+
+          const itemTextToggle = document.createElement('div');
+          itemTextToggle.classList.add('result-item-text-toggle');
+          itemTextToggle.appendChild(itemText);
+          itemTextToggle.appendChild(stateToggle);
+
+          const item = document.createElement('div');
+          item.classList.add('result-item');
+          if (result.level === "ERROR") {
+            item.classList.add('result-item-error');
+          } else {
+            item.classList.add('result-item-warning');
+          }
+          item.appendChild(itemTextToggle);
+          item.appendChild(itemOccurrence);
+          item.appendChild(divider);
+          item.appendChild(itemMessage);
+          item.addEventListener('click', function() {
+            google.script.run.selectResult(result.regexPattern, result.occurrenceNumber);
+          });
+
+          resultsContainer.appendChild(item);
+        });
+
+        document.getElementById('searchLoader').style.display = 'none';
+      }
+    </script>
+  </body>
+</html>
